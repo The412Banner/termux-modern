@@ -45,7 +45,11 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
         // Initialize legacy clients needed by Termux logic
         mTermuxTerminalSessionActivityClient = TermuxTerminalSessionActivityClient(this)
         mTermuxTerminalViewClient = TermuxTerminalViewClient(this, mTermuxTerminalSessionActivityClient)
-        mTermuxTerminalExtraKeys = TermuxTerminalExtraKeys(this, mTermuxTerminalSessionActivityClient)
+        
+        // We need a TerminalView for TermuxTerminalExtraKeys, even if it's not the one displayed.
+        // This is a workaround for legacy code compatibility.
+        val dummyTerminalView = TerminalView(this, null)
+        mTermuxTerminalExtraKeys = TermuxTerminalExtraKeys(this, dummyTerminalView, mTermuxTerminalViewClient, mTermuxTerminalSessionActivityClient)
         
         mTermuxTerminalViewClient.onCreate()
         mTermuxTerminalSessionActivityClient.onCreate()
