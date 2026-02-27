@@ -23,6 +23,7 @@ import com.termux.app.ui.components.ExtraKeysBar
 import com.termux.app.ui.components.TermuxTerminalView
 import com.termux.terminal.TerminalSession
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession as SharedTermuxSession
+import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +31,8 @@ fun TerminalScreen(
     termuxService: TermuxService?,
     onOpenSettings: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val preferences = remember { TermuxAppSharedPreferences.build(context) }
     var activeSessionIndex by remember { mutableStateOf(0) }
     var showMenu by remember { mutableStateOf(false) }
     var showSessionSelector by remember { mutableStateOf(false) }

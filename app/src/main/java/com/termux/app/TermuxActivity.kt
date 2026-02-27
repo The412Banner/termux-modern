@@ -24,7 +24,6 @@ import com.termux.view.TerminalView
 class TermuxActivity : AppCompatActivity(), ServiceConnection {
 
     private var mTermuxService by mutableStateOf<TermuxService?>(null)
-    private lateinit var mPreferencesManager: PreferencesManager
     private lateinit var mProperties: TermuxAppSharedProperties
     
     // Termux internal clients
@@ -35,7 +34,6 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
         super.onCreate(savedInstanceState)
         
         mProperties = TermuxAppSharedProperties.getProperties()
-        mPreferencesManager = PreferencesManager(applicationContext)
         
         // Initialize legacy clients needed by Termux logic
         mTermuxTerminalSessionActivityClient = TermuxTerminalSessionActivityClient(this)
@@ -49,7 +47,6 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
             TermuxModernTheme(darkTheme = isDark) {
                 AppNavHost(
                     termuxService = mTermuxService,
-                    prefsManager = mPreferencesManager,
                     onOpenOldSettings = { 
                         // Start old settings activity if needed
                         startActivity(Intent(this, com.termux.app.activities.SettingsActivity::class.java))

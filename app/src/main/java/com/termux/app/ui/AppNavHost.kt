@@ -16,7 +16,6 @@ sealed class Screen(val route: String) {
 @Composable
 fun AppNavHost(
     termuxService: TermuxService?,
-    prefsManager: PreferencesManager,
     onOpenOldSettings: () -> Unit
 ) {
     val navController = rememberNavController()
