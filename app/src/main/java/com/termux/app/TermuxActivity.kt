@@ -69,7 +69,7 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
         
         if (mTermuxService?.isTermuxSessionsEmpty == true) {
             TermuxInstaller.setupBootstrapIfNeeded(this) {
-                mTermuxService?.createTermuxSession()
+                mTermuxService?.createTermuxSession(null, null, null, mProperties.defaultWorkingDirectory, false, null)
             }
         }
     }
