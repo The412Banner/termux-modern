@@ -5,11 +5,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import com.termux.view.TerminalView
+import com.termux.terminal.TerminalSession
 
 @Composable
 fun TermuxTerminalView(
-    modifier: Modifier = Modifier,
-    onViewCreated: (TerminalView) -> Unit
+    session: TerminalSession,
+    modifier: Modifier = Modifier
 ) {
     AndroidView(
         modifier = modifier,
@@ -19,11 +20,13 @@ fun TermuxTerminalView(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
-                onViewCreated(this)
+                attachSession(session)
             }
         },
         update = { view ->
-            // Update view properties if needed
+            if (view.currentSession != session) {
+                view.attachSession(session)
+            }
         }
     )
 }

@@ -8,23 +8,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.termux.terminal.TerminalSession
 
 data class ExtraKey(val label: String, val value: String)
 
 val EXTRA_KEYS = listOf(
     ExtraKey("ESC", "\u001B"),
-    ExtraKey("TAB", "	"),
+    ExtraKey("TAB", "\t"),
     ExtraKey("CTRL", ""),  // TODO: Special handling
     ExtraKey("ALT", ""),   // TODO: Special handling
     ExtraKey("|", "|"),
     ExtraKey("-", "-"),
     ExtraKey("_", "_"),
     ExtraKey("/", "/"),
-    ExtraKey("", ""),
     ExtraKey("~", "~"),
     ExtraKey("`", "`"),
     ExtraKey("'", "'"),
-    ExtraKey(""", """),
+    ExtraKey("\"", "\""),
     ExtraKey("{", "{"),
     ExtraKey("}", "}"),
     ExtraKey("[", "["),
@@ -41,7 +41,7 @@ val EXTRA_KEYS = listOf(
 
 @Composable
 fun ExtraKeysBar(
-    onKeyPress: (String) -> Unit,
+    session: TerminalSession?,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -59,7 +59,11 @@ fun ExtraKeysBar(
             EXTRA_KEYS.forEach { key ->
                 ExtraKeyButton(
                     label = key.label,
-                    onClick = { onKeyPress(key.value) }
+                    onClick = { 
+                        if (key.value.isNotEmpty()) {
+                            session?.write(key.value)
+                        }
+                    }
                 )
             }
         }

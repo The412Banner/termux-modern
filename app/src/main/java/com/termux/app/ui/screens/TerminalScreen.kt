@@ -1,19 +1,9 @@
 package com.termux.app.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -23,119 +13,82 @@ import com.termux.app.ui.components.ExtraKeysBar
 import com.termux.app.ui.components.TermuxTerminalView
 import com.termux.terminal.TerminalSession
 import com.termux.shared.termux.shell.command.runner.terminal.TermuxSession as SharedTermuxSession
-import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalScreen(
-    termuxService: TermuxService?,
-    onOpenSettings: () -> Unit
+    service: TermuxService?,
+    onNavigateToSettings: () -> Unit
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val preferences = remember { TermuxAppSharedPreferences.build(context) }
-    var activeSessionIndex by remember { mutableStateOf(0) }
-    var showMenu by remember { mutableStateOf(false) }
-    var showSessionSelector by remember { mutableStateOf(false) }
+    val sessions = service?.termuxSessions?.map { it.terminalSession } ?: emptyList()
+    var currentSession by remember { mutableStateOf<TerminalSession?>(null) }
 
-    val termuxSessions = termuxService?.getTermuxSessions() ?: emptyList<SharedTermuxSession>()
-    val activeTermuxSession = termuxSessions.getOrNull(activeSessionIndex)
-    val activeTerminalSession = activeTermuxSession?.getTerminalSession()
+    LaunchedEffect(sessions) {
+        if (currentSession == null && sessions.isNotEmpty()) {
+            currentSession = sessions.first()
+        } else if (currentSession != null && !sessions.contains(currentSession)) {
+            currentSession = sessions.lastOrNull()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
-                    Text(
-                        text = "Session ${activeSessionIndex + 1}",
-                        modifier = androidx.compose.foundation.clickable { showSessionSelector = true }
-                    )
+                title = {
+                    if (sessions.isNotEmpty()) {
+                        ScrollableTabRow(
+                            selectedTabIndex = sessions.indexOf(currentSession).coerceAtLeast(0),
+                            edgePadding = 0.dp,
+                            divider = {},
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ) {
+                            sessions.forEach { session ->
+                                Tab(
+                                    selected = currentSession == session,
+                                    onClick = { currentSession = session },
+                                    text = { Text("Session ${sessions.indexOf(session) + 1}") }
+                                )
+                            }
+                        }
+                    } else {
+                        Text("Termux")
+                    }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        termuxService?.createTermuxSession()
-                        activeSessionIndex = termuxSessions.size // Switch to new session
+                    IconButton(onClick = { 
+                        service?.createTermuxSession("/system/bin/sh", null, null, "/data/data/com.termux/files/home", false, "New Session") 
                     }) {
                         Icon(Icons.Default.Add, contentDescription = "New Session")
                     }
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Menu")
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Reset Terminal") },
-                                leadingIcon = { Icon(Icons.Default.Refresh, null) },
-                                onClick = { 
-                                    showMenu = false
-                                    activeTerminalSession?.reset()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Settings") },
-                                leadingIcon = { Icon(Icons.Default.Settings, null) },
-                                onClick = { showMenu = false; onOpenSettings() }
-                            )
-                        }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 }
             )
         },
         bottomBar = {
-            ExtraKeysBar(onKeyPress = { key ->
-                activeTerminalSession?.write(key)
-            })
+            ExtraKeysBar(
+                session = currentSession,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (activeTerminalSession != null) {
+    ) { paddingValues ->
+        Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            if (currentSession != null) {
                 TermuxTerminalView(
-                    modifier = Modifier.fillMaxSize(),
-                    onViewCreated = { view ->
-                        view.attachSession(activeTerminalSession)
-                    }
+                    session = currentSession!!,
+                    modifier = Modifier.fillMaxSize()
                 )
             } else {
-                Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    if (termuxService == null) {
-                        CircularProgressIndicator()
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    if (service == null) {
+                        Text("Service not bound")
                     } else {
-                        Text("No active sessions")
+                        CircularProgressIndicator()
                     }
                 }
             }
-        }
-
-        if (showSessionSelector) {
-            AlertDialog(
-                onDismissRequest = { showSessionSelector = false },
-                title = { Text("Select Session") },
-                text = {
-                    androidx.compose.foundation.lazy.LazyColumn {
-                        items(termuxSessions.size) { index ->
-                            ListItem(
-                                headlineContent = { Text("Session ${index + 1}") },
-                                modifier = androidx.compose.foundation.clickable {
-                                    activeSessionIndex = index
-                                    showSessionSelector = false
-                                },
-                                trailingContent = {
-                                    if (activeSessionIndex == index) {
-                                        Icon(androidx.compose.material.icons.filled.Check, null)
-                                    }
-                                }
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showSessionSelector = false }) {
-                        Text("Close")
-                    }
-                }
-            )
         }
     }
 }
