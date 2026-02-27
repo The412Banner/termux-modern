@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import com.termux.app.terminal.TermuxTerminalSessionActivityClient
 import com.termux.app.terminal.TermuxTerminalViewClient
 import com.termux.app.terminal.TermuxActivityRootView
+import com.termux.app.terminal.io.TermuxTerminalExtraKeys
 import com.termux.app.ui.AppNavHost
 import com.termux.app.ui.theme.TermuxModernTheme
 import com.termux.app.utils.PreferencesManager
@@ -29,10 +30,12 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
     private var mCurrentSession by mutableStateOf<com.termux.terminal.TerminalSession?>(null)
     private lateinit var mProperties: TermuxAppSharedProperties
     private var mIsVisible = false
+    private var mIsOnResumeAfterOnCreate = false
     
     // Termux internal clients
     private lateinit var mTermuxTerminalSessionActivityClient: TermuxTerminalSessionActivityClient
     private lateinit var mTermuxTerminalViewClient: TermuxTerminalViewClient
+    private var mTermuxTerminalExtraKeys: TermuxTerminalExtraKeys? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,9 +45,12 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
         // Initialize legacy clients needed by Termux logic
         mTermuxTerminalSessionActivityClient = TermuxTerminalSessionActivityClient(this)
         mTermuxTerminalViewClient = TermuxTerminalViewClient(this, mTermuxTerminalSessionActivityClient)
+        mTermuxTerminalExtraKeys = TermuxTerminalExtraKeys(this, mTermuxTerminalSessionActivityClient)
         
         mTermuxTerminalViewClient.onCreate()
         mTermuxTerminalSessionActivityClient.onCreate()
+
+        mIsOnResumeAfterOnCreate = true
 
         setContent {
             val isDark = true // TODO: Observe from prefs
@@ -74,6 +80,7 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
     override fun onResume() {
         super.onResume()
         mTermuxTerminalSessionActivityClient.onResume()
+        mIsOnResumeAfterOnCreate = false
     }
 
     override fun onStop() {
@@ -87,6 +94,8 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
     fun getTermuxService(): TermuxService? = mTermuxService
     
     fun isVisible(): Boolean = mIsVisible
+    
+    fun isOnResumeAfterOnCreate(): Boolean = mIsOnResumeAfterOnCreate
     
     fun getCurrentSession(): com.termux.terminal.TerminalSession? = mCurrentSession
     
@@ -129,6 +138,16 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
     
     fun getExtraKeysView(): ExtraKeysView? = null
     
+    fun setExtraKeysView(view: ExtraKeysView?) {}
+    
+    fun getTermuxTerminalExtraKeys(): TermuxTerminalExtraKeys? = mTermuxTerminalExtraKeys
+    
+    fun getTermuxTerminalSessionClient(): TermuxTerminalSessionActivityClient = mTermuxTerminalSessionActivityClient
+    
+    fun getTerminalToolbarDefaultHeight(): Int = 0
+    
+    fun getNavBarHeight(): Int = 0
+    
     fun isActivityRecreated(): Boolean = false
     
     fun toggleTerminalToolbar() {}
@@ -156,5 +175,22 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
         super.onDestroy()
         mTermuxService?.unsetTermuxTerminalSessionClient()
         try { unbindService(this) } catch (e: Exception) {}
+    }
+
+    companion object {
+        @JvmStatic
+        fun updateTermuxActivityStyling(service: TermuxService, boolean: Boolean) {}
+        
+        @JvmStatic
+        fun startTermuxActivity(context: Context) {
+            context.startActivity(newInstance(context))
+        }
+        
+        @JvmStatic
+        fun newInstance(context: Context): Intent {
+            return Intent(context, TermuxActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        }
     }
 }
