@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - modern-test
       - 'github-releases/**'
   pull_request:
     branches:
@@ -80,15 +81,17 @@ jobs:
           (cd "$APK_DIR_PATH"; sha256sum "${APK_BASENAME_PREFIX}"_*.apk > "${APK_BASENAME_PREFIX}_sha256sums")
 
       - name: Create GitHub Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/modern-test')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_VERSION_NAME }}
-          name: Termux Modernized - ${{ env.RELEASE_VERSION_NAME }}
+          name: Termux Modernized (${{ github.ref_name }}) - ${{ env.RELEASE_VERSION_NAME }}
+          prerelease: ${{ github.ref == 'refs/heads/modern-test' }}
           body: |
             ### 🚀 Modernized Termux Build (Jetpack Compose & Material 3)
             
-            This release contains the latest successful build of the modernized Termux app.
+            **Branch:** `${{ github.ref_name }}`
+            ${{ github.ref == 'refs/heads/modern-test' && '> [!IMPORTANT]\n> This is a **COEXISTENCE TEST BUILD** with package name `com.termux.modern`.' || '' }}
             
             ---
             
