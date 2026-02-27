@@ -13,12 +13,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.*
 import com.termux.app.terminal.TermuxTerminalSessionActivityClient
 import com.termux.app.terminal.TermuxTerminalViewClient
+import com.termux.app.terminal.TermuxActivityRootView
 import com.termux.app.ui.AppNavHost
 import com.termux.app.ui.theme.TermuxModernTheme
 import com.termux.app.utils.PreferencesManager
 import com.termux.shared.logger.Logger
 import com.termux.shared.termux.TermuxConstants
 import com.termux.shared.termux.settings.properties.TermuxAppSharedProperties
+import com.termux.shared.termux.extrakeys.ExtraKeysView
 import com.termux.view.TerminalView
 
 class TermuxActivity : AppCompatActivity(), ServiceConnection {
@@ -117,11 +119,15 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
 
     fun getDrawer(): androidx.drawerlayout.widget.DrawerLayout? = null
     
-    fun getTerminalToolbarViewPager(): Any? = null
+    fun getTerminalToolbarViewPager(): android.view.View? = null
     
     fun isTerminalViewSelected(): Boolean = true
     
-    fun getTermuxActivityRootView(): android.view.View? = window.decorView
+    fun getTermuxActivityRootView(): TermuxActivityRootView? = null
+    
+    fun getTermuxActivityBottomSpaceView(): android.view.View? = null
+    
+    fun getExtraKeysView(): ExtraKeysView? = null
     
     fun isActivityRecreated(): Boolean = false
     
