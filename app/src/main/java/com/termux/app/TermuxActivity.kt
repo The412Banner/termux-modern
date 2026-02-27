@@ -24,7 +24,9 @@ import com.termux.view.TerminalView
 class TermuxActivity : AppCompatActivity(), ServiceConnection {
 
     private var mTermuxService by mutableStateOf<TermuxService?>(null)
+    private var mCurrentSession by mutableStateOf<com.termux.terminal.TerminalSession?>(null)
     private lateinit var mProperties: TermuxAppSharedProperties
+    private var mIsVisible = false
     
     // Termux internal clients
     private lateinit var mTermuxTerminalSessionActivityClient: TermuxTerminalSessionActivityClient
@@ -61,26 +63,69 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
         bindService(serviceIntent, this, 0)
     }
 
-    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-        val binder = service as TermuxService.LocalBinder
-        mTermuxService = binder.service
-        
-        mTermuxService?.setTermuxTerminalSessionClient(mTermuxTerminalSessionActivityClient)
-        
-        if (mTermuxService?.isTermuxSessionsEmpty == true) {
-            TermuxInstaller.setupBootstrapIfNeeded(this) {
-                mTermuxService?.createTermuxSession(null, null, null, mProperties.defaultWorkingDirectory, false, null)
-            }
-        }
+    override fun onStart() {
+        super.onStart()
+        mIsVisible = true
+        mTermuxTerminalSessionActivityClient.onStart()
     }
 
-    override fun onServiceDisconnected(name: ComponentName?) {
-        mTermuxService = null
+    override fun onResume() {
+        super.onResume()
+        mTermuxTerminalSessionActivityClient.onResume()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        mTermuxService?.unsetTermuxTerminalSessionClient()
-        try { unbindService(this) } catch (e: Exception) {}
+    override fun onStop() {
+        super.onStop()
+        mIsVisible = false
+        mTermuxTerminalSessionActivityClient.onStop()
     }
-}
+
+    // --- Legacy Methods for Java Clients ---
+
+    fun getTermuxService(): TermuxService? = mTermuxService
+    
+    fun isVisible(): Boolean = mIsVisible
+    
+    fun getCurrentSession(): com.termux.terminal.TerminalSession? = mCurrentSession
+    
+    fun setCurrentSession(session: com.termux.terminal.TerminalSession?) {
+        mCurrentSession = session
+    }
+
+    fun getProperties(): TermuxAppSharedProperties = mProperties
+    
+    fun getPreferences(): com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences {
+        return com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences.build(this)
+    }
+
+    fun getTerminalView(): com.termux.view.TerminalView? {
+        // This is tricky with Compose. For now, returning null or we need to capture it.
+        return null 
+    }
+
+    fun showToast(message: String?, isLong: Boolean) {
+        android.widget.Toast.makeText(this, message, if (isLong) android.widget.Toast.LENGTH_LONG else android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    fun finishActivityIfNotFinishing() {
+        if (!isFinishing) finish()
+    }
+
+    fun termuxSessionListNotifyUpdated() {
+        // Update UI if needed
+    }
+
+    fun getDrawer(): androidx.drawerlayout.widget.DrawerLayout? = null
+    
+    fun getTerminalToolbarViewPager(): Any? = null
+    
+    fun isTerminalViewSelected(): Boolean = true
+    
+    fun getTermuxActivityRootView(): android.view.View? = window.decorView
+    
+    fun isActivityRecreated(): Boolean = false
+    
+    fun toggleTerminalToolbar() {}
+
+    // --- ServiceConnection ---
+
