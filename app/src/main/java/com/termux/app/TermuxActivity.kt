@@ -95,7 +95,7 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
     fun getProperties(): TermuxAppSharedProperties = mProperties
     
     fun getPreferences(): com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences {
-        return com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences.build(this)
+        return com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences.build(this)!!
     }
 
     fun getTerminalView(): com.termux.view.TerminalView? {
@@ -129,3 +129,26 @@ class TermuxActivity : AppCompatActivity(), ServiceConnection {
 
     // --- ServiceConnection ---
 
+    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+        val binder = service as TermuxService.LocalBinder
+        mTermuxService = binder.service
+        
+        mTermuxService?.setTermuxTerminalSessionClient(mTermuxTerminalSessionActivityClient)
+        
+        if (mTermuxService?.isTermuxSessionsEmpty == true) {
+            TermuxInstaller.setupBootstrapIfNeeded(this) {
+                mTermuxService?.createTermuxSession(null, null, null, mProperties.defaultWorkingDirectory, false, null)
+            }
+        }
+    }
+
+    override fun onServiceDisconnected(name: ComponentName?) {
+        mTermuxService = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mTermuxService?.unsetTermuxTerminalSessionClient()
+        try { unbindService(this) } catch (e: Exception) {}
+    }
+}
